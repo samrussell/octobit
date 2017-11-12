@@ -1,0 +1,3 @@
+pylibscrypt
+protobuf
+pycrypto

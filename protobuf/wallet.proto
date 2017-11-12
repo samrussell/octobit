@@ -1,0 +1,171 @@
+syntax = "proto2";
+
+package octobit;
+
+message PeerAddress {
+  required bytes ip_address = 1;
+  required uint32 port = 2;
+  required uint64 services = 3;
+}
+
+message EncryptedData {
+  required bytes initialisation_vector = 1;
+  required bytes encrypted_private_key = 2;
+}
+
+message DeterministicKey {
+  required bytes chain_code = 1;
+  repeated uint32 path = 2;
+  optional uint32 issued_subkeys = 3;
+  optional uint32 lookahead_size = 4;
+  optional bool isFollowing = 5;
+  optional uint32 sigsRequiredToSpend = 6 [default = 1];
+}
+
+message Key {
+  required Type type = 1;
+  optional bytes secret_bytes = 2;
+  optional EncryptedData encrypted_data = 6;
+  optional bytes public_key = 3;
+  optional string label = 4;
+  optional int64 creation_timestamp = 5;
+  optional DeterministicKey deterministic_key = 7;
+  optional bytes deterministic_seed = 8;
+  optional EncryptedData encrypted_deterministic_seed = 9;
+
+  enum Type {
+    ORIGINAL = 1;
+    ENCRYPTED_SCRYPT_AES = 2;
+    DETERMINISTIC_MNEMONIC = 3;
+    DETERMINISTIC_KEY = 4;
+  }
+}
+
+message Script {
+  required bytes program = 1;
+  required int64 creation_timestamp = 2;
+}
+
+message TransactionInput {
+  required bytes transaction_out_point_hash = 1;
+  required uint32 transaction_out_point_index = 2;
+  required bytes script_bytes = 3;
+  optional uint32 sequence = 4;
+  optional int64 value = 5;
+}
+
+message TransactionOutput {
+  required int64 value = 1;
+  required bytes script_bytes = 2;
+  optional bytes spent_by_transaction_hash = 3;
+  optional int32 spent_by_transaction_index = 4;
+}
+
+message TransactionConfidence {
+  optional Type type = 1;
+  optional int32 appeared_at_height = 2;
+  optional bytes overriding_transaction = 3;
+  optional int32 depth = 4;
+  repeated PeerAddress broadcast_by = 6;
+  optional Source source = 7;
+
+  enum Type {
+    UNKNOWN = 0;
+    BUILDING = 1;
+    PENDING = 2;
+    NOT_IN_BEST_CHAIN = 3;
+    DEAD = 4;
+  }
+
+  enum Source {
+    SOURCE_UNKNOWN = 0;
+    SOURCE_NETWORK = 1;
+    SOURCE_SELF = 2;
+  }
+}
+
+message Transaction {
+  required int32 version = 1;
+  required bytes hash = 2;
+  optional Pool pool = 3;
+  optional uint32 lock_time = 4;
+  optional int64 updated_at = 5;
+  repeated TransactionInput transaction_input = 6;
+  repeated TransactionOutput transaction_output = 7;
+  repeated bytes block_hash = 8;
+  repeated int32 block_relativity_offsets = 11;
+  optional TransactionConfidence confidence = 9;
+  optional Purpose purpose = 10 [default = UNKNOWN];
+  optional ExchangeRate exchange_rate = 12;
+  optional string memo = 13;
+
+  enum Pool{
+    UNSPENT = 4;
+    SPENT = 5;
+    INACTIVE = 2;
+    DEAD = 10;
+    PENDING = 16;
+    PENDING_INACTIVE = 18;
+  }
+
+  enum Purpose {
+    UNKNOWN = 0;
+    USER_PAYMENT = 1;
+    KEY_ROTATION = 2;
+    ASSURANCE_CONTRACT_CLAIM = 3;
+    ASSURANCE_CONTRACT_PLEDGE = 4;
+    ASSURANCE_CONTRACT_STUB = 5;
+  }
+}
+
+message ScryptParameters {
+  required bytes salt = 1;
+  optional int64 n = 2 [default = 16384];
+  optional int32 r = 3 [default = 8];
+  optional int32 p = 4 [default = 1];
+}
+
+message Extension {
+  required string id = 1;
+  required bytes data = 2;
+  required bool mandatory = 3;
+}
+
+message Tag {
+  required string tag = 1;
+  required bytes data = 2;
+}
+
+message TransactionSigner {
+  required string class_name = 1;
+  optional bytes data = 2;
+}
+
+message Wallet {
+  required string network_identifier = 1;
+  optional bytes last_seen_block_hash = 2;
+  optional uint32 last_seen_block_height = 12;
+  optional uint64 last_seen_block_time_secs = 14;
+  repeated Key key = 3;
+  repeated Transaction transaction = 4;
+  repeated Script watched_script = 15;
+  optional EncryptionType encryption_type = 5 [default = UNENCRYPTED];
+  optional ScryptParameters encryption_parameters = 6;
+  optional int32 version = 7 [default = 1];
+  repeated Extension extension = 10;
+  optional string description = 11;
+  optional uint64 key_rotation_time = 13;
+  repeated Tag tags = 16;
+  repeated TransactionSigner transaction_signers = 17;
+
+  enum EncryptionType {
+    UNENCRYPTED = 1;
+    ENCRYPTED_SCRYPT_AES = 2;
+  }
+}
+
+message ExchangeRate {
+  required int64 coin_value = 1;
+  required int64 fiat_value = 2;
+  required string fiat_currency_code = 3;
+}
