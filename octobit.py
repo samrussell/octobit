@@ -3,6 +3,7 @@ from getpass import getpass
 from pylibscrypt import scrypt
 from Crypto.Cipher import AES
 import struct
+from protobuf.wallet_pb2 import Wallet
 
 # taken from read-multibit-wallet-file
 DEFAULT_N = 16384 # 2^14
@@ -24,12 +25,19 @@ def decrypt(key, iv, encrypted_data):
   cipher = AES.new(key, AES.MODE_CBC, iv)
   return cipher.decrypt(encrypted_data)
 
-def export_keys(filename, passphrase):
-  scrypt_key = scrypt(passphrase, DEFAULT_SALT, N=DEFAULT_N, r=DEFAULT_R, p=DEFAULT_P, olen=DEFAULT_DERIVED_KEY_LENGTH)
+def load_crypted_wallet(filename, passphrase):
+  coded_passphrase = struct.pack(">" + "H" * len(passphrase), *[ord(x) for x in passphrase])
+  scrypt_key = scrypt(coded_passphrase, DEFAULT_SALT, N=DEFAULT_N, r=DEFAULT_R, p=DEFAULT_P, olen=DEFAULT_DERIVED_KEY_LENGTH)
   with open(filename) as file:
     data = file.read()
     serialised_wallet = decrypt(scrypt_key, data[:16], data[16:])
-  return serialised_wallet
+  wallet = Wallet()
+  wallet.ParseFromString(serialised_wallet)
+  
+  return wallet
+
+def export_keys(filename, passphrase):
+  wallet = load_crypted_wallet(filename, passphrase)
 
 def run():
   args = get_args()
