@@ -30,14 +30,14 @@ def decrypt(key, iv, encrypted_data):
 def decrypt_padded_aes(key, iv, crypted_data):
   decrypted_message = decrypt(key, iv, crypted_data)
   # PKCS#7 padding
-  number_of_blocks = len(decrypted_message) / AES_BLOCK_LENGTH
+  number_of_blocks = len(decrypted_message) // AES_BLOCK_LENGTH
   last_block = decrypted_message[(number_of_blocks - 1)*AES_BLOCK_LENGTH:]
   # check last byte
-  padding_length = ord(last_block[-1])
+  padding_length = last_block[-1]
   if padding_length > AES_BLOCK_LENGTH:
     raise Exception("Bad crypted data - padding value doesn't make sense")
   padding_bytes = last_block[0-padding_length:]
-  if chr(padding_length) * padding_length != padding_bytes:
+  if bytes([padding_length] * padding_length) != padding_bytes:
     raise Exception("Bad crypted data - padding bytes aren't all equal")
   # we're good, remove them
   return decrypted_message[:0-padding_length]
@@ -69,7 +69,7 @@ def export_key(filename, passphrase):
   key_key = build_scrypt_key(passphrase, salt=wallet.encryption_parameters.salt)
   decrypted_key = decrypt_padded_aes(key_key, key_object.encrypted_data.initialisation_vector, key_object.encrypted_data.encrypted_private_key)
 
-  return "".join(decrypted_key)
+  return decrypted_key.decode("utf-8")
 
 def run():
   args = get_args()
